@@ -2,7 +2,6 @@
 // Copyright 2025-2026 Mindful Software LLC d/b/a Dartastic.io, All rights reserved.
 
 import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
-import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart';
 
 import 'otel_featurebase_suppression.dart';
 
@@ -48,42 +47,54 @@ Future<T> tracedFeaturebase<T>({
   final t = tracer ?? OTel.tracerProvider().getTracer('otel_featurebase');
   final span = t.startSpan('featurebase $operation', kind: SpanKind.client);
   try {
-    span.setStringAttribute('rpc.system', 'featurebase');
+    span.addAttributes(
+        OTel.attributes([OTel.attributeString('rpc.system', 'featurebase')]));
     final r = await invoke();
     final res = r.result;
     if (res != null) {
       if (res.organizationId != null) {
-        span.setStringAttribute('featurebase.org.id', res.organizationId!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('featurebase.org.id', res.organizationId!)]));
       }
       if (res.boardId != null) {
-        span.setStringAttribute('featurebase.board.id', res.boardId!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('featurebase.board.id', res.boardId!)]));
       }
       if (res.postId != null) {
-        span.setStringAttribute('featurebase.post.id', res.postId!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('featurebase.post.id', res.postId!)]));
       }
       if (res.postStatus != null) {
-        span.setStringAttribute('featurebase.post.status', res.postStatus!);
+        span.addAttributes(OTel.attributes([
+          OTel.attributeString('featurebase.post.status', res.postStatus!)
+        ]));
       }
       if (res.upvotes != null) {
-        span.setIntAttribute('featurebase.post.upvotes', res.upvotes!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeInt('featurebase.post.upvotes', res.upvotes!)]));
       }
       if (res.commentsCount != null) {
-        span.setIntAttribute('featurebase.post.comments', res.commentsCount!);
+        span.addAttributes(OTel.attributes([
+          OTel.attributeInt('featurebase.post.comments', res.commentsCount!)
+        ]));
       }
       if (res.statusCode != null) {
-        span.setIntAttribute('http.response.status_code', res.statusCode!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeInt('http.response.status_code', res.statusCode!)]));
       }
       if (res.errorCode != null) {
-        span.setStringAttribute('featurebase.error.code', res.errorCode!);
+        span.addAttributes(OTel.attributes(
+            [OTel.attributeString('featurebase.error.code', res.errorCode!)]));
       }
-      final fail =
-          res.errorCode != null ||
+      final fail = res.errorCode != null ||
           (res.statusCode != null && res.statusCode! >= 400);
       if (fail) {
-        span.setStringAttribute(
-          ErrorResource.errorType.key,
-          res.errorCode ?? 'featurebase.error',
-        );
+        span.addAttributes(OTel.attributes([
+          OTel.attributeString(
+            ErrorResource.errorType.key,
+            res.errorCode ?? 'featurebase.error',
+          )
+        ]));
         span.setStatus(SpanStatusCode.Error, res.errorMessage);
       }
     }
