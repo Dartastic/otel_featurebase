@@ -1,11 +1,12 @@
-// Licensed under the Dartastic Pro Software License Agreement.
+// Licensed under the Apache License, Version 2.0
 // Copyright 2025-2026 Mindful Software LLC d/b/a Dartastic.io, All rights reserved.
 
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
+import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart';
 
 import 'otel_featurebase_suppression.dart';
 
 class FeaturebaseResult {
+  /// Creates a result.
   const FeaturebaseResult({
     this.organizationId,
     this.boardId,
@@ -29,8 +30,13 @@ class FeaturebaseResult {
   final String? errorMessage;
 }
 
+/// What a traced call returned: the value for the caller plus fields
+/// recorded on the span.
 class FeaturebaseCallResult<T> {
+  /// Creates a call result.
   const FeaturebaseCallResult({required this.value, this.result});
+
+  /// The value returned to the caller.
   final T value;
   final FeaturebaseResult? result;
 }
@@ -38,60 +44,63 @@ class FeaturebaseCallResult<T> {
 Future<T> tracedFeaturebase<T>({
   required String operation,
   required Future<FeaturebaseCallResult<T>> Function() invoke,
-  Tracer? tracer,
+  APITracer? tracer,
 }) async {
   if (featurebaseInstrumentationSuppressed()) {
     final r = await invoke();
     return r.value;
   }
-  final t = tracer ?? OTel.tracerProvider().getTracer('otel_featurebase');
+  final t = tracer ?? OTelAPI.tracerProvider().getTracer('otel_featurebase');
   final span = t.startSpan('featurebase $operation', kind: SpanKind.client);
   try {
-    span.addAttributes(
-        OTel.attributes([OTel.attributeString('rpc.system', 'featurebase')]));
+    span.addAttributes(OTelAPI.attributes(
+        [OTelAPI.attributeString('rpc.system', 'featurebase')]));
     final r = await invoke();
     final res = r.result;
     if (res != null) {
       if (res.organizationId != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('featurebase.org.id', res.organizationId!)]));
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString('featurebase.org.id', res.organizationId!)
+        ]));
       }
       if (res.boardId != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('featurebase.board.id', res.boardId!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('featurebase.board.id', res.boardId!)]));
       }
       if (res.postId != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('featurebase.post.id', res.postId!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('featurebase.post.id', res.postId!)]));
       }
       if (res.postStatus != null) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeString('featurebase.post.status', res.postStatus!)
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString('featurebase.post.status', res.postStatus!)
         ]));
       }
       if (res.upvotes != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeInt('featurebase.post.upvotes', res.upvotes!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeInt('featurebase.post.upvotes', res.upvotes!)]));
       }
       if (res.commentsCount != null) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeInt('featurebase.post.comments', res.commentsCount!)
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeInt('featurebase.post.comments', res.commentsCount!)
         ]));
       }
       if (res.statusCode != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeInt('http.response.status_code', res.statusCode!)]));
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeInt('http.response.status_code', res.statusCode!)
+        ]));
       }
       if (res.errorCode != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('featurebase.error.code', res.errorCode!)]));
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString('featurebase.error.code', res.errorCode!)
+        ]));
       }
       final fail = res.errorCode != null ||
           (res.statusCode != null && res.statusCode! >= 400);
       if (fail) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeString(
-            ErrorResource.errorType.key,
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString(
+            ErrorAttributes.errorType.key,
             res.errorCode ?? 'featurebase.error',
           )
         ]));
